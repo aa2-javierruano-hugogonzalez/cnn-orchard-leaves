@@ -1,0 +1,7 @@
+# Dataset and Images
+data/raw/
+*.tif
+*.tiff
+*.jpg
+*.jpeg
+*.png
