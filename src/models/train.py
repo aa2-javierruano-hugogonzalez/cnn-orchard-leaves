@@ -1,12 +1,7 @@
 import copy
 import time
-from pathlib import Path
 
 import torch
-import torch.nn as nn
-
-from src.data.make_dataset import get_dataloaders
-from src.models.cnn import BaselineCNN
 
 
 class EarlyStopping:
@@ -85,13 +80,11 @@ def validate_one_epoch(model, val_loader, criterion, device):
     return val_loss, val_accuracy
 
 
-def train_model(model, train_loader, val_loader, num_epochs=50, learning_rate=0.001, patience=5, device=None):
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=50, patience=5, device=None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = model.to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     early_stopping = EarlyStopping(patience=patience)
 
     history = {
@@ -128,24 +121,3 @@ def train_model(model, train_loader, val_loader, num_epochs=50, learning_rate=0.
     history["stopped_epoch"] = epoch
     return model, history
 
-
-if __name__ == "__main__":
-    torch.manual_seed(42)
-
-    project_root = Path(__file__).resolve().parents[2]
-    data_dir = project_root / "data" / "raw" / "leafscans-orchard-compressed"
-    checkpoint_path = project_root / "checkpoints" / "baseline_cnn.pt"
-
-    train_loader, val_loader, test_loader, class_names = get_dataloaders(data_dir, batch_size=32)
-    model = BaselineCNN(num_classes=len(class_names))
-
-    model, history = train_model(model, train_loader, val_loader, num_epochs=50, learning_rate=0.001, patience=5)
-
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), checkpoint_path)
-
-    best_index = history["best_epoch"] - 1
-    print(f"Best epoch: {history['best_epoch']}")
-    print(f"Best val_loss: {history['val_loss'][best_index]:.4f}")
-    print(f"Best val_acc: {history['val_accuracy'][best_index]:.4f}")
-    print(f"Best weights saved to: {checkpoint_path}")
