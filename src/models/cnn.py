@@ -18,7 +18,9 @@ class BaselineCNN(nn.Module):
         self.relu3 = nn.ReLU()
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.fc1 = nn.Linear(in_features=64 * 12 * 12, out_features=128)
+        self.global_pool = nn.AdaptiveAvgPool2d(output_size=1)
+
+        self.fc1 = nn.Linear(in_features=64, out_features=128)
         self.relu4 = nn.ReLU()
         self.dropout = nn.Dropout(p=0.25)
         self.fc2 = nn.Linear(in_features=128, out_features=num_classes)
@@ -28,6 +30,7 @@ class BaselineCNN(nn.Module):
         x = self.pool2(self.relu2(self.conv2(x)))
         x = self.pool3(self.relu3(self.conv3(x)))
 
+        x = self.global_pool(x)
         x = torch.flatten(x, start_dim=1)
 
         x = self.dropout(self.relu4(self.fc1(x)))
