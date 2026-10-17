@@ -80,7 +80,8 @@ def validate_one_epoch(model, val_loader, criterion, device):
     return val_loss, val_accuracy
 
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=50, patience=5, device=None):
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=50, patience=5,
+                device=None, scheduler=None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -99,6 +100,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
 
         train_loss, train_accuracy = train_one_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_accuracy = validate_one_epoch(model, val_loader, criterion, device)
+
+        if scheduler is not None:
+            scheduler.step(val_loss)
 
         history["train_loss"].append(train_loss)
         history["train_accuracy"].append(train_accuracy)
@@ -120,4 +124,3 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
     history["best_epoch"] = early_stopping.best_epoch
     history["stopped_epoch"] = epoch
     return model, history
-
