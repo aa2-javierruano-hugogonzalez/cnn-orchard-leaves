@@ -7,7 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-IMAGE_SIZE = (96, 96)
+IMAGE_SIZE = 96
 TRAIN_RATIO = 0.70
 VALIDATION_RATIO = 0.15
 RANDOM_SEED = 42
@@ -39,19 +39,28 @@ class LetterboxResize:
         return canvas
 
 
+class RandomRightAngleRotation:
+    def __call__(self, image_tensor):
+        quarter_turns = int(torch.randint(0, 4, (1,)).item())
+        return torch.rot90(image_tensor, k=quarter_turns, dims=(1, 2))
+
+
+PREPROCESS_TRANSFORM = transforms.Compose([
+    LetterboxResize(IMAGE_SIZE),
+    transforms.PILToTensor()
+])
+
 BASE_TRANSFORM = transforms.Compose([
-    LetterboxResize(IMAGE_SIZE[0]),
-    transforms.ToTensor(),
+    transforms.ConvertImageDtype(torch.float32),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 ])
 
 AUGMENT_TRANSFORM = transforms.Compose([
-    LetterboxResize(IMAGE_SIZE[0]),
+    transforms.ConvertImageDtype(torch.float32),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomVerticalFlip(p=0.5),
-    transforms.RandomChoice([transforms.RandomRotation((angle, angle)) for angle in (0, 90, 180, 270)]),
+    RandomRightAngleRotation(),
     transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.02),
-    transforms.ToTensor(),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 ])
 
@@ -90,71 +99,86 @@ def split_dataset_by_class(data_dir, train_ratio=TRAIN_RATIO, validation_ratio=V
     return train_samples, validation_samples, test_samples, class_names
 
 
+def cache_preprocessed_tensors(samples, cache_dir):
+    cached_samples = []
+    num_new_tensors = 0
+
+    for image_path, label in samples:
+        tensor_path = Path(cache_dir) / image_path.parent.name / f"{image_path.stem}.pt"
+
+        if not tensor_path.exists():
+            tensor_path.parent.mkdir(parents=True, exist_ok=True)
+            image_tensor = PREPROCESS_TRANSFORM(load_rgb_image(image_path))
+            temporary_path = tensor_path.with_suffix(".tmp")
+            torch.save(image_tensor, temporary_path)
+            temporary_path.replace(tensor_path)
+            num_new_tensors += 1
+
+        cached_samples.append((tensor_path, label))
+
+    if num_new_tensors > 0:
+        print(f"Cached {num_new_tensors} preprocessed tensors in {cache_dir}")
+
+    return cached_samples
+
+
+def balance_training_samples(samples, seed=RANDOM_SEED):
+    random_generator = random.Random(seed)
+
+    paths_by_label = {}
+    for tensor_path, label in samples:
+        paths_by_label.setdefault(label, []).append(tensor_path)
+
+    target_samples = max(len(real_paths) for real_paths in paths_by_label.values())
+
+    balanced_samples = []
+    for label, real_paths in paths_by_label.items():
+        balanced_samples += [(tensor_path, label) for tensor_path in real_paths]
+
+        num_missing = target_samples - len(real_paths)
+        for _ in range(num_missing):
+            balanced_samples.append((random_generator.choice(real_paths), label))
+
+    return balanced_samples
+
+
 class OrchardDataset(Dataset):
-    def __init__(self, samples, transform=BASE_TRANSFORM):
+    def __init__(self, samples, is_training=False):
         self.samples = samples
-        self.transform = transform
+        self.is_training = is_training
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, index):
-        image_path, label = self.samples[index]
-        image = load_rgb_image(image_path)
-        return self.transform(image), label
+        tensor_path, label = self.samples[index]
+        image_tensor = torch.load(tensor_path, weights_only=True)
+
+        if self.is_training:
+            return AUGMENT_TRANSFORM(image_tensor), label
+
+        return BASE_TRANSFORM(image_tensor), label
 
 
-class BalancedOrchardDataset(Dataset):
-    def __init__(self, samples, seed=RANDOM_SEED, augment_transform=AUGMENT_TRANSFORM):
-        self.augment_transform = augment_transform
-
-        self.image_paths = []
-        self.labels = []
-
-        self._balance_classes(samples, seed)
-
-    def _balance_classes(self, samples, seed):
-        random_generator = random.Random(seed)
-
-        paths_by_label = {}
-        for image_path, label in samples:
-            paths_by_label.setdefault(label, []).append(image_path)
-
-        target_samples = max(len(real_paths) for real_paths in paths_by_label.values())
-
-        for label, real_paths in paths_by_label.items():
-            for image_path in real_paths:
-                self._add_sample(image_path, label)
-
-            num_missing = target_samples - len(real_paths)
-            for _ in range(num_missing):
-                cloned_path = random_generator.choice(real_paths)
-                self._add_sample(cloned_path, label)
-
-    def _add_sample(self, image_path, label):
-        self.image_paths.append(image_path)
-        self.labels.append(label)
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, index):
-        image = load_rgb_image(self.image_paths[index])
-        return self.augment_transform(image), self.labels[index]
-
-
-def get_dataloaders(data_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED):
+def get_dataloaders(data_dir, processed_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED):
     train_samples, validation_samples, test_samples, class_names = split_dataset_by_class(data_dir, seed=seed)
 
-    train_dataset = BalancedOrchardDataset(train_samples, seed=seed)
-    validation_dataset = OrchardDataset(validation_samples)
-    test_dataset = OrchardDataset(test_samples)
+    cache_dir = Path(processed_dir) / f"letterbox_{IMAGE_SIZE}px"
+    train_samples = cache_preprocessed_tensors(train_samples, cache_dir)
+    validation_samples = cache_preprocessed_tensors(validation_samples, cache_dir)
+    test_samples = cache_preprocessed_tensors(test_samples, cache_dir)
+
+    train_dataset = OrchardDataset(balance_training_samples(train_samples, seed=seed), is_training=True)
+    validation_dataset = OrchardDataset(validation_samples, is_training=False)
+    test_dataset = OrchardDataset(test_samples, is_training=False)
 
     shuffle_generator = torch.Generator().manual_seed(seed)
+    keep_workers_alive = num_workers > 0
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
-                              num_workers=num_workers, generator=shuffle_generator)
-    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                              generator=shuffle_generator, persistent_workers=keep_workers_alive)
+    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False,
+                                   num_workers=num_workers, persistent_workers=keep_workers_alive)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return train_loader, validation_loader, test_loader, class_names
@@ -163,8 +187,9 @@ def get_dataloaders(data_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED):
 if __name__ == "__main__":
     project_root = Path(__file__).resolve().parents[2]
     data_dir = project_root / "data" / "raw" / "leafscans-orchard-compressed"
+    processed_dir = project_root / "data" / "processed"
 
-    train_loader, validation_loader, test_loader, class_names = get_dataloaders(data_dir, batch_size=16)
+    train_loader, validation_loader, test_loader, class_names = get_dataloaders(data_dir, processed_dir, batch_size=16)
 
     print(f"Classes: {class_names}")
     print(f"Train samples: {len(train_loader.dataset)}")

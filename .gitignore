@@ -1,5 +1,6 @@
 # Dataset and Images
 data/raw/
+data/processed/
 *.tif
 *.tiff
 *.jpg
