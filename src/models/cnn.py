@@ -3,38 +3,37 @@ import torch.nn as nn
 
 
 class BaselineCNN(nn.Module):
-    def __init__(self, num_classes=7):
+    def __init__(self, num_classes=7, conv_filters=(16, 32, 64), kernel_size=5, fc_width=128,
+                 dropout_rate=0.25, activation=nn.ReLU):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=5, stride=1, padding=2)
-        self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        convolutional_layers = []
+        in_channels = 3
+        for out_channels in conv_filters:
+            convolutional_layers += [
+                nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=1,
+                          padding=kernel_size // 2, bias=False),
+                nn.BatchNorm2d(out_channels),
+                activation(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+            ]
+            in_channels = out_channels
 
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=1, padding=2)
-        self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=1, padding=2)
-        self.relu3 = nn.ReLU()
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
-
+        self.features = nn.Sequential(*convolutional_layers)
         self.global_pool = nn.AdaptiveAvgPool2d(output_size=1)
 
-        self.fc1 = nn.Linear(in_features=64, out_features=128)
-        self.relu4 = nn.ReLU()
-        self.dropout = nn.Dropout(p=0.25)
-        self.fc2 = nn.Linear(in_features=128, out_features=num_classes)
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=in_channels, out_features=fc_width),
+            activation(),
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(in_features=fc_width, out_features=num_classes),
+        )
 
     def forward(self, x):
-        x = self.pool1(self.relu1(self.conv1(x)))
-        x = self.pool2(self.relu2(self.conv2(x)))
-        x = self.pool3(self.relu3(self.conv3(x)))
-
+        x = self.features(x)
         x = self.global_pool(x)
         x = torch.flatten(x, start_dim=1)
-
-        x = self.dropout(self.relu4(self.fc1(x)))
-        x = self.fc2(x)
+        x = self.classifier(x)
         return x
 
 
