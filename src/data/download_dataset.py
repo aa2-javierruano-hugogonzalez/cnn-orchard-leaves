@@ -13,7 +13,6 @@ def download_dataset(dataset_identifier: str, target_folder: str):
     )
 
 if __name__ == "__main__":
-    # Recuerda cambiar 'tu-usuario' por tu handle real de Kaggle
     DATASET = "javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves"
     DESTINATION = "data/raw"
     
