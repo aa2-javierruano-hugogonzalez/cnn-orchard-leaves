@@ -1,31 +1,56 @@
 import random
 from pathlib import Path
 
+import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 IMAGE_SIZE = (96, 96)
-TARGET_SAMPLES_PER_CLASS = 400
 TRAIN_RATIO = 0.70
 VALIDATION_RATIO = 0.15
 RANDOM_SEED = 42
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
+
+class LetterboxResize:
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, image):
+        width, height = image.size
+        scale = self.size / max(width, height)
+        new_size = (max(1, round(width * scale)), max(1, round(height * scale)))
+        resized_image = image.resize(new_size, Image.BILINEAR)
+
+        corners = [
+            resized_image.getpixel((0, 0)),
+            resized_image.getpixel((new_size[0] - 1, 0)),
+            resized_image.getpixel((0, new_size[1] - 1)),
+            resized_image.getpixel((new_size[0] - 1, new_size[1] - 1)),
+        ]
+        background_color = tuple(int(value) for value in np.median(corners, axis=0))
+
+        canvas = Image.new("RGB", (self.size, self.size), background_color)
+        offset = ((self.size - new_size[0]) // 2, (self.size - new_size[1]) // 2)
+        canvas.paste(resized_image, offset)
+        return canvas
+
+
 BASE_TRANSFORM = transforms.Compose([
-    transforms.Resize(IMAGE_SIZE),
+    LetterboxResize(IMAGE_SIZE[0]),
     transforms.ToTensor(),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 ])
 
 AUGMENT_TRANSFORM = transforms.Compose([
-    transforms.Resize(IMAGE_SIZE),
+    LetterboxResize(IMAGE_SIZE[0]),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomVerticalFlip(p=0.5),
-    transforms.RandomRotation(degrees=30),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    transforms.RandomChoice([transforms.RandomRotation((angle, angle)) for angle in (0, 90, 180, 270)]),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.02),
     transforms.ToTensor(),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 ])
@@ -80,50 +105,42 @@ class OrchardDataset(Dataset):
 
 
 class BalancedOrchardDataset(Dataset):
-    def __init__(self, samples, target_samples=TARGET_SAMPLES_PER_CLASS, seed=RANDOM_SEED,
-                 base_transform=BASE_TRANSFORM, augment_transform=AUGMENT_TRANSFORM):
-        self.base_transform = base_transform
+    def __init__(self, samples, seed=RANDOM_SEED, augment_transform=AUGMENT_TRANSFORM):
         self.augment_transform = augment_transform
 
         self.image_paths = []
         self.labels = []
-        self.is_augmented = []
 
-        self._balance_classes(samples, target_samples, seed)
+        self._balance_classes(samples, seed)
 
-    def _balance_classes(self, samples, target_samples, seed):
+    def _balance_classes(self, samples, seed):
         random_generator = random.Random(seed)
 
         paths_by_label = {}
         for image_path, label in samples:
             paths_by_label.setdefault(label, []).append(image_path)
 
+        target_samples = max(len(real_paths) for real_paths in paths_by_label.values())
+
         for label, real_paths in paths_by_label.items():
             for image_path in real_paths:
-                self._add_sample(image_path, label, is_augmented=False)
+                self._add_sample(image_path, label)
 
             num_missing = target_samples - len(real_paths)
             for _ in range(num_missing):
                 cloned_path = random_generator.choice(real_paths)
-                self._add_sample(cloned_path, label, is_augmented=True)
+                self._add_sample(cloned_path, label)
 
-    def _add_sample(self, image_path, label, is_augmented):
+    def _add_sample(self, image_path, label):
         self.image_paths.append(image_path)
         self.labels.append(label)
-        self.is_augmented.append(is_augmented)
 
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, index):
         image = load_rgb_image(self.image_paths[index])
-
-        if self.is_augmented[index]:
-            image = self.augment_transform(image)
-        else:
-            image = self.base_transform(image)
-
-        return image, self.labels[index]
+        return self.augment_transform(image), self.labels[index]
 
 
 def get_dataloaders(data_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED):
