@@ -5,7 +5,7 @@ import torch
 
 
 class EarlyStopping:
-    def __init__(self, patience=5, min_delta=0.0):
+    def __init__(self, patience=7, min_delta=0.0):
         self.patience = patience
         self.min_delta = min_delta
         self.best_val_loss = float("inf")
@@ -28,6 +28,10 @@ class EarlyStopping:
     def restore_best_weights(self, model):
         if self.best_weights is not None:
             model.load_state_dict(self.best_weights)
+
+
+def get_learning_rate(optimizer):
+    return optimizer.param_groups[0]["lr"]
 
 
 def train_one_epoch(model, train_loader, criterion, optimizer, device):
@@ -80,7 +84,7 @@ def validate_one_epoch(model, val_loader, criterion, device):
     return val_loss, val_accuracy
 
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=50, patience=5,
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=50, patience=7,
                 device=None, scheduler=None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -93,10 +97,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         "train_accuracy": [],
         "val_loss": [],
         "val_accuracy": [],
+        "learning_rate": [],
     }
 
     for epoch in range(1, num_epochs + 1):
         epoch_start_time = time.time()
+        learning_rate = get_learning_rate(optimizer)
 
         train_loss, train_accuracy = train_one_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_accuracy = validate_one_epoch(model, val_loader, criterion, device)
@@ -108,9 +114,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         history["train_accuracy"].append(train_accuracy)
         history["val_loss"].append(val_loss)
         history["val_accuracy"].append(val_accuracy)
+        history["learning_rate"].append(learning_rate)
 
         epoch_duration = time.time() - epoch_start_time
-        print(f"Epoch {epoch:3d}/{num_epochs} | "
+        print(f"Epoch {epoch:3d}/{num_epochs} | lr {learning_rate:.2e} | "
               f"train_loss {train_loss:.4f} | train_acc {train_accuracy:.4f} | "
               f"val_loss {val_loss:.4f} | val_acc {val_accuracy:.4f} | "
               f"{epoch_duration:.1f}s")
