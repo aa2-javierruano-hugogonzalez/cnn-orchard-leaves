@@ -11,7 +11,7 @@ from src.models.cnn import BaselineCNN
 from src.models.train import train_model
 from src.utils.evaluation import evaluate_model, plot_confusion_matrix, plot_training_curves, print_evaluation_report
 
-EXPERIMENT_NAME = "baseline_experiment"
+EXPERIMENT_NAME = "exp01_baseline"
 RANDOM_SEED = 42
 LEARNING_RATE = 0.001
 WEIGHT_DECAY = 0.0
