@@ -45,11 +45,6 @@ class RandomRightAngleRotation:
         return torch.rot90(image_tensor, k=quarter_turns, dims=(1, 2))
 
 
-PREPROCESS_TRANSFORM = transforms.Compose([
-    LetterboxResize(IMAGE_SIZE),
-    transforms.PILToTensor()
-])
-
 BASE_TRANSFORM = transforms.Compose([
     transforms.ConvertImageDtype(torch.float32),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
@@ -63,6 +58,13 @@ AUGMENT_TRANSFORM = transforms.Compose([
     transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.02),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 ])
+
+
+def build_preprocess_transform(image_size):
+    return transforms.Compose([
+        LetterboxResize(image_size),
+        transforms.PILToTensor()
+    ])
 
 
 def load_rgb_image(image_path):
@@ -99,7 +101,8 @@ def split_dataset_by_class(data_dir, train_ratio=TRAIN_RATIO, validation_ratio=V
     return train_samples, validation_samples, test_samples, class_names
 
 
-def cache_preprocessed_tensors(samples, cache_dir):
+def cache_preprocessed_tensors(samples, cache_dir, image_size):
+    preprocess_transform = build_preprocess_transform(image_size)
     cached_samples = []
     num_new_tensors = 0
 
@@ -108,7 +111,7 @@ def cache_preprocessed_tensors(samples, cache_dir):
 
         if not tensor_path.exists():
             tensor_path.parent.mkdir(parents=True, exist_ok=True)
-            image_tensor = PREPROCESS_TRANSFORM(load_rgb_image(image_path))
+            image_tensor = preprocess_transform(load_rgb_image(image_path))
             temporary_path = tensor_path.with_suffix(".tmp")
             torch.save(image_tensor, temporary_path)
             temporary_path.replace(tensor_path)
@@ -160,13 +163,13 @@ class OrchardDataset(Dataset):
         return BASE_TRANSFORM(image_tensor), label
 
 
-def get_dataloaders(data_dir, processed_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED):
+def get_dataloaders(data_dir, processed_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED, image_size=IMAGE_SIZE):
     train_samples, validation_samples, test_samples, class_names = split_dataset_by_class(data_dir, seed=seed)
 
-    cache_dir = Path(processed_dir) / f"letterbox_{IMAGE_SIZE}px"
-    train_samples = cache_preprocessed_tensors(train_samples, cache_dir)
-    validation_samples = cache_preprocessed_tensors(validation_samples, cache_dir)
-    test_samples = cache_preprocessed_tensors(test_samples, cache_dir)
+    cache_dir = Path(processed_dir) / f"letterbox_{image_size}px"
+    train_samples = cache_preprocessed_tensors(train_samples, cache_dir, image_size)
+    validation_samples = cache_preprocessed_tensors(validation_samples, cache_dir, image_size)
+    test_samples = cache_preprocessed_tensors(test_samples, cache_dir, image_size)
 
     train_dataset = OrchardDataset(balance_training_samples(train_samples, seed=seed), is_training=True)
     validation_dataset = OrchardDataset(validation_samples, is_training=False)
