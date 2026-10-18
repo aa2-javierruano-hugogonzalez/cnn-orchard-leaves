@@ -15,7 +15,7 @@ from src.utils.evaluation import evaluate_model, plot_confusion_matrix, plot_tra
 EXPERIMENT_NAME = "baseline"
 RANDOM_SEED = 42
 LEARNING_RATE = 0.001
-WEIGHT_DECAY = 0.01
+WEIGHT_DECAY = 0.0
 EARLY_STOPPING_PATIENCE = 7
 BATCH_SIZE = 32
 NUM_EPOCHS = 50
@@ -25,6 +25,8 @@ KERNEL_SIZE = 5
 FC_WIDTH = 128
 DROPOUT_RATE = 0.25
 ACTIVATION = nn.ReLU
+USE_BATCHNORM = False
+USE_GLOBAL_POOLING = False
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data" / "raw" / "leafscans-orchard-compressed"
@@ -55,7 +57,7 @@ def save_experiment_summary(run_name, history, metrics, class_names, output_path
             "batch_size": BATCH_SIZE,
             "num_epochs": NUM_EPOCHS,
             "early_stopping_patience": EARLY_STOPPING_PATIENCE,
-            "optimizer": "AdamW",
+            "optimizer": "Adam",
             "scheduler": None,
             "loss_function": "CrossEntropyLoss",
             "conv_filters": list(CONV_FILTERS),
@@ -63,6 +65,8 @@ def save_experiment_summary(run_name, history, metrics, class_names, output_path
             "fc_width": FC_WIDTH,
             "dropout_rate": DROPOUT_RATE,
             "activation": ACTIVATION.__name__,
+            "use_batchnorm": USE_BATCHNORM,
+            "use_global_pooling": USE_GLOBAL_POOLING,
         },
         "best_epoch": history["best_epoch"],
         "stopped_epoch": history["stopped_epoch"],
@@ -100,10 +104,11 @@ def main():
 
     model = BaselineCNN(
         num_classes=len(class_names), conv_filters=CONV_FILTERS, kernel_size=KERNEL_SIZE,
-        fc_width=FC_WIDTH, dropout_rate=DROPOUT_RATE, activation=ACTIVATION
+        fc_width=FC_WIDTH, dropout_rate=DROPOUT_RATE, activation=ACTIVATION,
+        use_batchnorm=USE_BATCHNORM, use_global_pooling=USE_GLOBAL_POOLING, input_size=IMAGE_SIZE
     ).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
     model, history = train_model(
         model, train_loader, val_loader, criterion, optimizer,
