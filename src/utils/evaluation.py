@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import matplotlib
@@ -100,6 +101,27 @@ def print_evaluation_report(metrics, class_names):
         precision = metrics["per_class_precision"][class_index]
         recall = metrics["per_class_recall"][class_index]
         print(f"{shorten_class_name(class_name):<16}{precision:>10.4f}{recall:>10.4f}")
+
+
+def save_predictions(metrics, class_names, test_samples, output_path):
+    rows = zip(test_samples, metrics["true_labels"], metrics["predictions"])
+
+    with open(output_path, "w", newline="", encoding="utf-8") as predictions_file:
+        writer = csv.writer(predictions_file)
+        writer.writerow(["image", "true_label", "predicted_label", "true_class", "predicted_class", "correct"])
+
+        for (sample_path, sample_label), true_label, predicted_label in rows:
+            if sample_label != true_label:
+                raise ValueError(f"Prediction order does not match the test samples at {sample_path}")
+
+            writer.writerow([
+                Path(sample_path).stem,
+                true_label,
+                predicted_label,
+                shorten_class_name(class_names[true_label]),
+                shorten_class_name(class_names[predicted_label]),
+                int(true_label == predicted_label),
+            ])
 
 
 def save_figure(figure, output_path):

@@ -9,7 +9,8 @@ import torch.nn as nn
 from src.data.make_dataset import IMAGE_SIZE, get_dataloaders
 from src.models.cnn import BaselineCNN
 from src.models.train import train_model
-from src.utils.evaluation import evaluate_model, plot_confusion_matrix, plot_training_curves, print_evaluation_report
+from src.utils.evaluation import (evaluate_model, plot_confusion_matrix, plot_training_curves,
+                                  print_evaluation_report, save_predictions)
 
 EXPERIMENT_NAME = "baseline_experiment"
 RANDOM_SEED = 42
@@ -119,6 +120,7 @@ def main():
     plot_training_curves(history, results_dir / "training_curves")
     plot_confusion_matrix(metrics["confusion_matrix"], class_names, results_dir / "confusion_matrix")
     save_experiment_summary(history, metrics, class_names, results_dir / "summary.json")
+    save_predictions(metrics, class_names, test_loader.dataset.samples, results_dir / "predictions.csv")
 
     print(f"Results saved to: {results_dir}")
 
