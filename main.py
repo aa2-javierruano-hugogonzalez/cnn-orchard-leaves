@@ -16,8 +16,6 @@ EXPERIMENT_NAME = "baseline"
 RANDOM_SEED = 42
 LEARNING_RATE = 0.001
 WEIGHT_DECAY = 0.01
-SCHEDULER_FACTOR = 0.3
-SCHEDULER_PATIENCE = 2
 EARLY_STOPPING_PATIENCE = 7
 BATCH_SIZE = 32
 NUM_EPOCHS = 50
@@ -58,9 +56,7 @@ def save_experiment_summary(run_name, history, metrics, class_names, output_path
             "num_epochs": NUM_EPOCHS,
             "early_stopping_patience": EARLY_STOPPING_PATIENCE,
             "optimizer": "AdamW",
-            "scheduler": "ReduceLROnPlateau",
-            "scheduler_factor": SCHEDULER_FACTOR,
-            "scheduler_patience": SCHEDULER_PATIENCE,
+            "scheduler": None,
             "loss_function": "CrossEntropyLoss",
             "conv_filters": list(CONV_FILTERS),
             "kernel_size": KERNEL_SIZE,
@@ -108,13 +104,10 @@ def main():
     ).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=SCHEDULER_FACTOR, patience=SCHEDULER_PATIENCE
-    )
 
     model, history = train_model(
         model, train_loader, val_loader, criterion, optimizer,
-        num_epochs=NUM_EPOCHS, patience=EARLY_STOPPING_PATIENCE, device=device, scheduler=scheduler
+        num_epochs=NUM_EPOCHS, patience=EARLY_STOPPING_PATIENCE, device=device, scheduler=None
     )
 
     metrics = evaluate_model(model, test_loader, device=device)
