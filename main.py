@@ -1,6 +1,5 @@
 import json
 import random
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +11,7 @@ from src.models.cnn import BaselineCNN
 from src.models.train import train_model
 from src.utils.evaluation import evaluate_model, plot_confusion_matrix, plot_training_curves, print_evaluation_report
 
-EXPERIMENT_NAME = "baseline"
+EXPERIMENT_NAME = "baseline_experiment"
 RANDOM_SEED = 42
 LEARNING_RATE = 0.001
 WEIGHT_DECAY = 0.0
@@ -41,14 +40,9 @@ def set_global_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 
-def create_run_name(experiment_name):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"{experiment_name}_{timestamp}"
-
-
-def save_experiment_summary(run_name, history, metrics, class_names, output_path):
+def save_experiment_summary(history, metrics, class_names, output_path):
     summary = {
-        "experiment_name": run_name,
+        "experiment_name": EXPERIMENT_NAME,
         "hyperparameters": {
             "random_seed": RANDOM_SEED,
             "image_size": IMAGE_SIZE,
@@ -90,11 +84,13 @@ def save_experiment_summary(run_name, history, metrics, class_names, output_path
 
 def main():
     set_global_seed(RANDOM_SEED)
-    run_name = create_run_name(EXPERIMENT_NAME)
-    results_dir = RESULTS_ROOT / run_name
+    results_dir = RESULTS_ROOT / EXPERIMENT_NAME
+
+    if results_dir.exists():
+        raise FileExistsError(f"{results_dir} already exists. Choose a new EXPERIMENT_NAME or move the old results.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Experiment: {run_name}")
+    print(f"Experiment: {EXPERIMENT_NAME}")
     print(f"Device: {device}")
 
     train_loader, val_loader, test_loader, class_names = get_dataloaders(
@@ -122,7 +118,7 @@ def main():
     torch.save(model.state_dict(), results_dir / "best_model.pt")
     plot_training_curves(history, results_dir / "training_curves")
     plot_confusion_matrix(metrics["confusion_matrix"], class_names, results_dir / "confusion_matrix")
-    save_experiment_summary(run_name, history, metrics, class_names, results_dir / "summary.json")
+    save_experiment_summary(history, metrics, class_names, results_dir / "summary.json")
 
     print(f"Results saved to: {results_dir}")
 
