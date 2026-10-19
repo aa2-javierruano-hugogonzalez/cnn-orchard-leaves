@@ -85,7 +85,7 @@ def validate_one_epoch(model, val_loader, criterion, device):
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=50, patience=7,
-                device=None, scheduler=None):
+                device=None, scheduler=None, epoch_callback=None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -121,6 +121,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
               f"train_loss {train_loss:.4f} | train_acc {train_accuracy:.4f} | "
               f"val_loss {val_loss:.4f} | val_acc {val_accuracy:.4f} | "
               f"{epoch_duration:.1f}s")
+
+        if epoch_callback is not None:
+            epoch_callback(val_loss, epoch)
 
         early_stopping.check(val_loss, model, epoch)
         if early_stopping.should_stop:
