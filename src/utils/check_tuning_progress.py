@@ -1,17 +1,33 @@
+import argparse
 from pathlib import Path
 
 import optuna
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-STUDY_NAME = "exp06_optuna_tuning"
-STORAGE_PATH = PROJECT_ROOT / "results" / STUDY_NAME / "tuning.db"
+RESULTS_ROOT = PROJECT_ROOT / "results"
+DEFAULT_STUDY_NAME = "exp07_refinement"
 TOP_TRIALS_TO_SHOW = 3
 IMPORTANCE_SEED = 42
 IMPORTANCE_BAR_WIDTH = 40
 
 
-def load_study(storage_path):
-    return optuna.load_study(study_name=STUDY_NAME, storage=f"sqlite:///{storage_path.as_posix()}")
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Show the progress of an Optuna tuning study.")
+    parser.add_argument(
+        "--study", "--experiment", dest="study_name", default=DEFAULT_STUDY_NAME,
+        help=f"study name, matching its folder in results/ (default: {DEFAULT_STUDY_NAME})"
+    )
+    return parser.parse_args()
+
+
+def find_available_studies(results_root):
+    if not results_root.exists():
+        return []
+    return sorted(folder.name for folder in results_root.iterdir() if (folder / "tuning.db").exists())
+
+
+def load_study(study_name, storage_path):
+    return optuna.load_study(study_name=study_name, storage=f"sqlite:///{storage_path.as_posix()}")
 
 
 def get_trials_by_state(study, state):
@@ -42,12 +58,18 @@ def print_top_trials(study):
 
     print(f"Top {min(TOP_TRIALS_TO_SHOW, len(ranked_trials))} trials by validation loss")
     for trial in ranked_trials[:TOP_TRIALS_TO_SHOW]:
-        print(f"  Trial {trial.number}: val_loss {trial.value:.4f} | "
-              f"val_macro_f1 {trial.user_attrs.get('val_macro_f1', float('nan')):.4f} | "
-              f"val_accuracy {trial.user_attrs.get('val_accuracy', float('nan')):.4f} | "
-              f"best epoch {trial.user_attrs.get('best_epoch')} of {trial.user_attrs.get('stopped_epoch')} | "
-              f"{trial.user_attrs.get('num_parameters', 0):,} parameters")
-        print(f"    conv_filters: {trial.user_attrs.get('conv_filters')}")
+        details = [
+            f"val_loss {trial.value:.4f}",
+            f"val_macro_f1 {trial.user_attrs.get('val_macro_f1', float('nan')):.4f}",
+            f"val_accuracy {trial.user_attrs.get('val_accuracy', float('nan')):.4f}",
+            f"best epoch {trial.user_attrs.get('best_epoch')} of {trial.user_attrs.get('stopped_epoch')}",
+        ]
+        if "num_parameters" in trial.user_attrs:
+            details.append(f"{trial.user_attrs['num_parameters']:,} parameters")
+
+        print(f"  Trial {trial.number}: " + " | ".join(details))
+        if "conv_filters" in trial.user_attrs:
+            print(f"    conv_filters: {trial.user_attrs['conv_filters']}")
         print(f"    hyperparameters: {trial.params}")
 
     best_by_macro_f1 = max(completed_trials, key=lambda trial: trial.user_attrs.get("val_macro_f1", 0.0), default=None)
@@ -72,11 +94,19 @@ def print_param_importances(study):
 
 
 def main():
-    if not STORAGE_PATH.exists():
-        print(f"No tuning database found at {STORAGE_PATH}")
+    arguments = parse_arguments()
+    storage_path = RESULTS_ROOT / arguments.study_name / "tuning.db"
+
+    if not storage_path.exists():
+        print(f"No tuning database found at {storage_path}")
+        available_studies = find_available_studies(RESULTS_ROOT)
+        if available_studies:
+            print(f"Available studies: {', '.join(available_studies)}")
         return
 
-    study = load_study(STORAGE_PATH)
+    study = load_study(arguments.study_name, storage_path)
+    print(f"Study: {arguments.study_name}")
+    print()
     print_progress(study)
     print()
     print_top_trials(study)
