@@ -29,7 +29,7 @@ ACTIVATION = nn.GELU
 USE_BATCHNORM = False
 USE_GLOBAL_POOLING = False
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "raw" / "leafscans-orchard-compressed"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 RESULTS_ROOT = PROJECT_ROOT / "results"

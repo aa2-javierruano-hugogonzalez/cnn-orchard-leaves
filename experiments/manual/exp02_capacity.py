@@ -11,7 +11,7 @@ from src.models.cnn import BaselineCNN
 from src.models.train import train_model
 from src.utils.evaluation import evaluate_model, plot_confusion_matrix, plot_training_curves, print_evaluation_report
 
-EXPERIMENT_NAME = "exp03_activation"
+EXPERIMENT_NAME = "exp02_capacity"
 RANDOM_SEED = 42
 LEARNING_RATE = 0.001
 WEIGHT_DECAY = 0.0
@@ -23,11 +23,11 @@ CONV_FILTERS = (32, 64, 128)
 KERNEL_SIZE = 5
 FC_WIDTH = 256
 DROPOUT_RATE = 0.25
-ACTIVATION = nn.GELU
+ACTIVATION = nn.ReLU
 USE_BATCHNORM = False
 USE_GLOBAL_POOLING = False
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "raw" / "leafscans-orchard-compressed"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 RESULTS_ROOT = PROJECT_ROOT / "results"
