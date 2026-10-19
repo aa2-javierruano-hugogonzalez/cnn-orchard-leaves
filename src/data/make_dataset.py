@@ -163,7 +163,8 @@ class OrchardDataset(Dataset):
         return BASE_TRANSFORM(image_tensor), label
 
 
-def get_dataloaders(data_dir, processed_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED, image_size=IMAGE_SIZE):
+def get_dataloaders(data_dir, processed_dir, batch_size=32, num_workers=2, seed=RANDOM_SEED, image_size=IMAGE_SIZE,
+                    shuffle_seed=None):
     train_samples, validation_samples, test_samples, class_names = split_dataset_by_class(data_dir, seed=seed)
 
     cache_dir = Path(processed_dir) / f"letterbox_{image_size}px"
@@ -175,7 +176,10 @@ def get_dataloaders(data_dir, processed_dir, batch_size=32, num_workers=2, seed=
     validation_dataset = OrchardDataset(validation_samples, is_training=False)
     test_dataset = OrchardDataset(test_samples, is_training=False)
 
-    shuffle_generator = torch.Generator().manual_seed(seed)
+    if shuffle_seed is None:
+        shuffle_seed = seed
+
+    shuffle_generator = torch.Generator().manual_seed(shuffle_seed)
     keep_workers_alive = num_workers > 0
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
