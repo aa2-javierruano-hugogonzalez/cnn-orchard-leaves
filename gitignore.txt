@@ -1,0 +1,35 @@
+# Dataset and Images
+data/raw/
+data/processed/
+*.tif
+*.tiff
+*.jpg
+*.jpeg
+*.png
+
+# Experiment Results
+results/
+*.pt
+*.pth
+*.db
+
+# Kaggle Credentials
+kaggle.json
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
