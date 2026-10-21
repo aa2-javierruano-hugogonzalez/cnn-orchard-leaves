@@ -26,7 +26,7 @@ de Kaggle. El análisis de los resultados se recoge en la memoria de la práctic
 
 ```
 cnn-orchard-leaves/
-├── main.py                              # Entrenamiento de la configuración base
+├── requirements.txt                     # Dependencias del proyecto
 ├── experiments/
 │   ├── manual/                          # Búsqueda manual de hiperparámetros
 │   │   ├── exp01_baseline.py
@@ -68,9 +68,11 @@ python -m venv .venv
 source .venv/bin/activate          # Linux / macOS
 # .venv\Scripts\activate           # Windows
 
-pip install torch torchvision      # ver https://pytorch.org/get-started/locally/ para la versión con CUDA
-pip install numpy pillow matplotlib scikit-learn optuna kaggle
+pip install -r requirements.txt
 ```
+
+Para entrenar en GPU, instala antes PyTorch con soporte CUDA usando el comando que indica
+<https://pytorch.org/get-started/locally/>, y después ejecuta `pip install -r requirements.txt`.
 
 ## 3. Descarga del conjunto de datos
 
@@ -99,6 +101,9 @@ importaciones de `src`.
 ```bash
 # Comprobar la carga de datos (la primera vez genera la caché en data/processed/)
 python -m src.data.make_dataset
+
+# Configuración base
+python main.py
 
 # Búsqueda manual
 python -m experiments.manual.exp01_baseline
@@ -142,7 +147,7 @@ excepción: guardan su estado en `tuning.db` y continúan desde donde se quedaro
 
 ## 6. Autores
 
-- Javier Ruano Hernández
-- Hugo González Fernández
+- Javier Ruano
+- Hugo González
 
 Aprendizaje Automático II · Curso 2026-27
