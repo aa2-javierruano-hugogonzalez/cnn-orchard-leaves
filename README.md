@@ -102,9 +102,6 @@ importaciones de `src`.
 # Comprobar la carga de datos (la primera vez genera la caché en data/processed/)
 python -m src.data.make_dataset
 
-# Configuración base
-python main.py
-
 # Búsqueda manual
 python -m experiments.manual.exp01_baseline
 python -m experiments.manual.exp02_capacity
@@ -147,7 +144,7 @@ excepción: guardan su estado en `tuning.db` y continúan desde donde se quedaro
 
 ## 6. Autores
 
-- Javier Ruano
-- Hugo González
+- Javier Ruano Hernández
+- Hugo González Fernández
 
 Aprendizaje Automático II · Curso 2026-27
