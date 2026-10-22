@@ -4,8 +4,8 @@ Clasificación de hojas de árboles frutales con redes neuronales convolucionale
 **Aprendizaje Automático II (curso 2026-27)**.
 
 El repositorio contiene una CNN propia configurable, una búsqueda manual de hiperparámetros (exp01–exp05), una
-búsqueda automática con Optuna (exp06–exp07) y una evaluación final con varias semillas y transferencia de
-conocimiento con EfficientNet-B0 (exp08–exp09). Se usa el conjunto
+búsqueda automática con Optuna (exp06–exp07) y una evaluación final con varias semillas (exp08) y transferencia de
+conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto del conjunto de imágenes
 [LeafScans Orchard](https://www.kaggle.com/datasets/javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves)
 de Kaggle. El análisis de los resultados se recoge en la memoria de la práctica.
 
@@ -47,11 +47,14 @@ cnn-orchard-leaves/
 │   ├── models/
 │   │   ├── cnn.py                       # Arquitectura BaselineCNN configurable
 │   │   └── train.py                     # Bucle de entrenamiento y parada anticipada
-│   └── utils/
-│       ├── evaluation.py                # Métricas, matriz de confusión, curvas y predicciones
-│       ├── rebuild_predictions.py       # Regenera predictions.csv de experimentos antiguos
-│       ├── mcnemar_table.py             # Tests de McNemar por pares (tabla LaTeX)
-│       └── check_tuning_progress.py     # Estado de un estudio Optuna
+│   ├── utils/
+│   │   ├── evaluation.py                # Métricas, matriz de confusión, curvas y predicciones
+│   │   ├── rebuild_predictions.py       # Regenera predictions.csv de experimentos antiguos
+│   │   ├── mcnemar_table.py             # Tests de McNemar por pares (tabla LaTeX)
+│   │   └── check_tuning_progress.py     # Estado de un estudio Optuna
+│   └── visualization/
+│       ├── plot_distribution.py         # Figura de la distribución de imágenes por clase y partición
+│       └── plot_optuna_study.py         # Figuras del historial de Optuna e importancia fANOVA (exp06)
 ├── data/                                # (no versionado) imágenes originales y tensores preprocesados
 └── results/                             # (no versionado) una carpeta por experimento
 ```
@@ -59,6 +62,9 @@ cnn-orchard-leaves/
 ## 2. Instalación
 
 Requisitos: Python 3.10 o superior. Si hay una GPU con CUDA, el código la usa automáticamente.
+
+Para entrenar en GPU, instala antes PyTorch con soporte CUDA usando el comando que indica
+<https://pytorch.org/get-started/locally/>, y después ejecuta `pip install -r requirements.txt`.
 
 ```bash
 git clone https://github.com/aa2-javierruano-hugogonzalez/cnn-orchard-leaves.git
@@ -71,12 +77,11 @@ source .venv/bin/activate          # Linux / macOS
 pip install -r requirements.txt
 ```
 
-Para entrenar en GPU, instala antes PyTorch con soporte CUDA usando el comando que indica
-<https://pytorch.org/get-started/locally/>, y después ejecuta `pip install -r requirements.txt`.
+
 
 ## 3. Descarga del conjunto de datos
 
-1. Crea un token de API en <https://www.kaggle.com/settings> (*API → Create New Token*) y guarda `kaggle.json` en
+1. Crea un token de API en <https://www.kaggle.com/settings> (*API → Create Legacy Api Key*) y guarda `kaggle.json` en
    `~/.kaggle/` (Linux/macOS) o en `C:\Users\<usuario>\.kaggle\` (Windows).
 2. Desde la raíz del repositorio, ejecuta:
 
@@ -121,6 +126,10 @@ python -m experiments.final.exp09_transfer_learning
 python -m src.utils.check_tuning_progress --study exp06_optuna_tuning
 python -m src.utils.rebuild_predictions
 python -m src.utils.mcnemar_table > results/mcnemar_table.tex
+
+# Figuras (se guardan en results/figures/)
+python -m src.visualization.plot_distribution
+python -m src.visualization.plot_optuna_study      # requiere haber ejecutado exp06
 ```
 
 Los hiperparámetros de cada experimento se definen como constantes al principio de su script. Cada experimento
