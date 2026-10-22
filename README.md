@@ -5,9 +5,9 @@ Clasificación de hojas de árboles frutales con redes neuronales convolucionale
 
 El repositorio contiene una CNN propia configurable, una búsqueda manual de hiperparámetros (exp01–exp05), una
 búsqueda automática con Optuna (exp06–exp07) y una evaluación final con varias semillas (exp08) y transferencia de
-conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto de imágenes, generado por nosotros, alojado en 
-[LeafScans Orchard](https://www.kaggle.com/datasets/javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves)
-de Kaggle, para facilitar la descarga. El análisis de los resultados se recoge en la memoria de la práctica.
+conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto de imágenes preparado por nosotros y alojado en Kaggle
+([LeafScans Orchard](https://www.kaggle.com/datasets/javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves))
+para facilitar su descarga. El análisis de los resultados se recoge en la memoria de la práctica.
 
 ---
 
@@ -63,9 +63,6 @@ cnn-orchard-leaves/
 
 Requisitos: Python 3.10 o superior. Si hay una GPU con CUDA, el código la usa automáticamente.
 
-Para entrenar en GPU, instala antes PyTorch con soporte CUDA usando el comando que indica
-<https://pytorch.org/get-started/locally/>, y después ejecuta `pip install -r requirements.txt`.
-
 ```bash
 git clone https://github.com/aa2-javierruano-hugogonzalez/cnn-orchard-leaves.git
 cd cnn-orchard-leaves
@@ -77,11 +74,12 @@ source .venv/bin/activate          # Linux / macOS
 pip install -r requirements.txt
 ```
 
-
+Para entrenar en GPU, instala antes PyTorch con soporte CUDA usando el comando que indica
+<https://pytorch.org/get-started/locally/>, y después ejecuta `pip install -r requirements.txt`.
 
 ## 3. Descarga del conjunto de datos
 
-1. Crea un token de API en <https://www.kaggle.com/settings> (*API → Create Legacy Api Key*) y guarda `kaggle.json` en
+1. Crea un token de API en <https://www.kaggle.com/settings> (*API → Create Legacy API Key*) y guarda `kaggle.json` en
    `~/.kaggle/` (Linux/macOS) o en `C:\Users\<usuario>\.kaggle\` (Windows).
 2. Desde la raíz del repositorio, ejecuta:
 
