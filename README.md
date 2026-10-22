@@ -5,9 +5,9 @@ Clasificación de hojas de árboles frutales con redes neuronales convolucionale
 
 El repositorio contiene una CNN propia configurable, una búsqueda manual de hiperparámetros (exp01–exp05), una
 búsqueda automática con Optuna (exp06–exp07) y una evaluación final con varias semillas (exp08) y transferencia de
-conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto del conjunto de imágenes
+conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto de imágenes, generado por nosotros, alojado en 
 [LeafScans Orchard](https://www.kaggle.com/datasets/javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves)
-de Kaggle. El análisis de los resultados se recoge en la memoria de la práctica.
+de Kaggle, para facilitar la descarga. El análisis de los resultados se recoge en la memoria de la práctica.
 
 ---
 
