@@ -1,13 +1,20 @@
-# cnn-orchard-leaves
+# CNN-Orchard-Leaves
 
-Clasificación de hojas de árboles frutales con redes neuronales convolucionales en PyTorch. Práctica 1 de
-**Aprendizaje Automático II (curso 2026-27)**.
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
+![Optuna](https://img.shields.io/badge/Optuna-5C4EE5?style=for-the-badge&logo=optuna&logoColor=white)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=for-the-badge&logo=plotly&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
+
+
+Clasificación de hojas de árboles frutales con redes neuronales convolucionales en PyTorch.
 
 El repositorio contiene una CNN propia configurable, una búsqueda manual de hiperparámetros (exp01–exp05), una
 búsqueda automática con Optuna (exp06–exp07) y una evaluación final con varias semillas (exp08) y transferencia de
-conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto de imágenes preparado por nosotros y alojado en Kaggle
-([LeafScans Orchard](https://www.kaggle.com/datasets/javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves))
-para facilitar su descarga. El análisis de los resultados se recoge en la memoria de la práctica.
+conocimiento con EfficientNet-B0 (exp09). Se usa un subconjunto de imágenes procedente de [LeafScans-Orchard](https://zenodo.org/records/20187966) (9708 imágenes) confeccionado por nosotros mismos y alojado en [Kaggle](https://www.kaggle.com/datasets/javierruanohdez/leafscans-orchard-balanced-fruit-tree-leaves) (2138 imágenes)
+para facilitar su descarga. 
+
+La memoria de la práctica, disponible en la raíz del repositorio, recoge el desarrollo completo del trabajo: la contextualización del problema, los objetivos, los fundamentos teóricos y las arquitecturas de referencia, la metodología empleada, el diseño y desarrollo de los experimentos, así como los resultados obtenidos. Incluye, además, gráficos, tablas comparativas, análisis y discusión de resultados, y las conclusiones derivadas de los distintos experimentos, documentando el proceso seguido desde la preparación de los datos hasta la evaluación de los modelos y la comparación de las estrategias de entrenamiento.
 
 ---
 
@@ -54,14 +61,16 @@ cnn-orchard-leaves/
 │   │   └── check_tuning_progress.py     # Estado de un estudio Optuna
 │   └── visualization/
 │       ├── plot_distribution.py         # Figura de la distribución de imágenes por clase y partición
+|       ├── plot_letterbox_comparison.py # Figura comparativa del preprocesamiento con y sin letterbox
 │       └── plot_optuna_study.py         # Figuras del historial de Optuna e importancia fANOVA (exp06)
+├── project_report.pdf                   # Memoria completa del proyecto
 ├── data/                                # (no versionado) imágenes originales y tensores preprocesados
 └── results/                             # (no versionado) una carpeta por experimento
 ```
 
 ## 2. Instalación
 
-Requisitos: Python 3.10 o superior. Si hay una GPU con CUDA, el código la usa automáticamente.
+Requisitos: Python 3.10 o superior. Si existe GPU con CUDA, el código la usa automáticamente.
 
 ```bash
 git clone https://github.com/aa2-javierruano-hugogonzalez/cnn-orchard-leaves.git
@@ -79,7 +88,7 @@ Para entrenar en GPU, instala antes PyTorch con soporte CUDA usando el comando q
 
 ## 3. Descarga del conjunto de datos
 
-1. Crea un token de API en <https://www.kaggle.com/settings> (*API → Create Legacy API Key*) y guarda `kaggle.json` en
+1. Crea una API token en <https://www.kaggle.com/settings> (*API → Create Legacy API Key*) y guarda `kaggle.json` en
    `~/.kaggle/` (Linux/macOS) o en `C:\Users\<usuario>\.kaggle\` (Windows).
 2. Desde la raíz del repositorio, ejecuta:
 
@@ -123,10 +132,11 @@ python -m experiments.final.exp09_transfer_learning
 # Utilidades
 python -m src.utils.check_tuning_progress --study exp06_optuna_tuning
 python -m src.utils.rebuild_predictions
-python -m src.utils.mcnemar_table > results/mcnemar_table.tex
+python -m src.utils.mcnemar_table
 
 # Figuras (se guardan en results/figures/)
 python -m src.visualization.plot_distribution
+python -m src.plot_letterbox_comparison
 python -m src.visualization.plot_optuna_study      # requiere haber ejecutado exp06
 ```
 
@@ -151,7 +161,7 @@ excepción: guardan su estado en `tuning.db` y continúan desde donde se quedaro
 
 ## 6. Autores
 
-- Javier Ruano Hernández
-- Hugo González Fernández
+- [Javier Ruano Hernández](https://github.com/javierruanohdez)
+- [Hugo González Fernández](https://github.com/hugogzfz)
 
-Aprendizaje Automático II · Curso 2026-27
+_Aprendizaje Automático II · Curso 2026-27_
